@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -40,7 +38,7 @@ func createAndEdit(dir string, title string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
-	filepath := fmt.Sprintf("%s/%s.md", strings.TrimRight(dir, "/"), title)
+	filepath := editor.GetPath(dir, title)
 	_, err := os.Stat(filepath)
 	if os.IsNotExist(err) {
 		file, err := os.Create(filepath)
