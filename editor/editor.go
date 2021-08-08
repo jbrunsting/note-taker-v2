@@ -4,18 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 const DefaultEditor = "vim"
 
-func GetPath(dir string, title string) string {
-	return fmt.Sprintf("%s/%s.md", strings.TrimRight(dir, "/"), title)
-}
-
-func Edit(dir string, title string) error {
-	path := GetPath(dir, title)
-
+func Edit(path string) error {
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = DefaultEditor
@@ -34,8 +27,7 @@ func Edit(dir string, title string) error {
 	return cmd.Run()
 }
 
-func Delete(dir string, title string) error {
-	path := GetPath(dir, title)
+func Delete(path string) error {
 	renamed := fmt.Sprintf("%v.deleted", path)
 	i := 1
 	for {

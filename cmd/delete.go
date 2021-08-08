@@ -21,13 +21,13 @@ var deleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		name, err := utils.SearchForFile(dir)
+		result, err := utils.SearchForFile(dir)
 		if err != nil {
 			return err
 		}
 		reader := bufio.NewReader(os.Stdin)
 		for {
-			fmt.Printf("Delete '%s'? [y/n]: ", name)
+			fmt.Printf("Delete '%s'? [y/n]: ", result.Name)
 
 			response, err := reader.ReadString('\n')
 			if err != nil {
@@ -37,7 +37,7 @@ var deleteCmd = &cobra.Command{
 			response = strings.ToLower(strings.TrimSpace(response))
 
 			if response == "y" || response == "yes" {
-				return editor.Delete(dir, name)
+				return editor.Delete(result.Path)
 			} else if response == "n" || response == "no" {
 				fmt.Printf("Negative confirmation, canceling\n")
 				return nil

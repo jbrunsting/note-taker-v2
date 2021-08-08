@@ -15,11 +15,11 @@ var editCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		filename, err := utils.SearchForFile(dir)
+		result, err := utils.SearchForFile(dir)
 		if err != nil {
 			return err
 		}
-		return editor.Edit(dir, filename)
+		return editor.Edit(result.Path)
 	},
 }
 

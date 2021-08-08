@@ -30,27 +30,28 @@ func GetDirFromCmd(cmd *cobra.Command) (string, error) {
 	return dir, nil
 }
 
-type searchOption struct {
+type NoteSearchResult struct {
 	Name    string
+	Path    string
 	Preview string
 }
 
-func getSearchOptions(dir string) ([]searchOption, error) {
+func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return []searchOption{}, err
+		return []NoteSearchResult{}, err
 	}
-	searchOptions := []searchOption{}
+	searchOptions := []NoteSearchResult{}
 	for _, f := range files {
 		filename := f.Name()
-        if filename[len(filename) - 7:] == "deleted" {
-            continue
-        }
+		if filename[len(filename)-7:] == "deleted" {
+			continue
+		}
 		name := strings.TrimSuffix(filename, filepath.Ext(filename))
 		path := fmt.Sprintf("%v/%v", dir, filename)
 		file, err := os.Open(path)
 		if err != nil {
-			return []searchOption{}, err
+			return []NoteSearchResult{}, err
 		}
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
@@ -68,15 +69,15 @@ func getSearchOptions(dir string) ([]searchOption, error) {
 		for ; lines < 5; lines += 1 {
 			preview = preview + "\n"
 		}
-		searchOptions = append(searchOptions, searchOption{Name: name, Preview: preview})
+		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview})
 	}
 	return searchOptions, nil
 }
 
-func SearchForFile(dir string) (string, error) {
+func SearchForFile(dir string) (*NoteSearchResult, error) {
 	files, err := getSearchOptions(dir)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	templates := &promptui.SelectTemplates{
 		Label:    "Notes:",
@@ -105,8 +106,8 @@ func SearchForFile(dir string) (string, error) {
 	}
 	i, _, err := prompt.Run()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return files[i].Name, nil
+	return &files[i], nil
 }
