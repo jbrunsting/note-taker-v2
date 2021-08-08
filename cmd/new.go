@@ -46,6 +46,9 @@ func createAndEdit(dir string, title string, filetype string) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
+	if title == "index" && filetype == "html" {
+		return nil
+	}
 	filepath := fmt.Sprintf("%s/%s.%s", strings.TrimRight(dir, "/"), title, filetype)
 	_, err := os.Stat(filepath)
 	if os.IsNotExist(err) {

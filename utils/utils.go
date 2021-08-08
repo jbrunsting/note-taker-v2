@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-    resultsHeight = 7
+	resultsHeight = 7
 )
 
 func GetDirFromCmd(cmd *cobra.Command) (string, error) {
@@ -41,14 +40,30 @@ type NoteSearchResult struct {
 	Name    string
 	Path    string
 	Preview string
-	ModTime time.Time
 }
 
-type byModTime []NoteSearchResult
+type byModTime []os.FileInfo
 
 func (a byModTime) Len() int           { return len(a) }
-func (a byModTime) Less(i, j int) bool { return a[i].ModTime.After(a[j].ModTime) }
+func (a byModTime) Less(i, j int) bool { return a[i].ModTime().After(a[j].ModTime()) }
 func (a byModTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+func GetNotesFiles(dir string) ([]os.FileInfo, error) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return []os.FileInfo{}, err
+	}
+	sort.Sort(byModTime(files))
+	filteredFiles := []os.FileInfo{}
+	for _, f := range files {
+		filename := f.Name()
+		if filename[len(filename)-7:] == "deleted" || filename == "index.html" {
+			continue
+		}
+		filteredFiles = append(filteredFiles, f)
+	}
+	return filteredFiles, nil
+}
 
 func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 	previewWidth := -1
@@ -61,16 +76,13 @@ func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 			previewHeight = height - resultsHeight - 6
 		}
 	}
-	files, err := ioutil.ReadDir(dir)
+	files, err := GetNotesFiles(dir)
 	if err != nil {
 		return []NoteSearchResult{}, err
 	}
 	searchOptions := []NoteSearchResult{}
 	for _, f := range files {
 		filename := f.Name()
-		if filename[len(filename)-7:] == "deleted" {
-			continue
-		}
 		name := strings.TrimSuffix(filename, filepath.Ext(filename))
 		path := fmt.Sprintf("%v/%v", dir, filename)
 		file, err := os.Open(path)
@@ -99,9 +111,8 @@ func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 			preview = "+" + strings.Repeat("-", previewWidth+2) + "+\n" + preview
 			preview = preview + "+" + strings.Repeat("-", previewWidth+2) + "+"
 		}
-		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview, ModTime: f.ModTime()})
+		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview})
 	}
-	sort.Sort(byModTime(searchOptions))
 	return searchOptions, nil
 }
 
