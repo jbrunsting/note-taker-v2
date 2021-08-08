@@ -12,6 +12,11 @@ import (
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
+)
+
+const (
+    resultsHeight = 7
 )
 
 func GetDirFromCmd(cmd *cobra.Command) (string, error) {
@@ -40,11 +45,22 @@ type NoteSearchResult struct {
 }
 
 type byModTime []NoteSearchResult
+
 func (a byModTime) Len() int           { return len(a) }
 func (a byModTime) Less(i, j int) bool { return a[i].ModTime.After(a[j].ModTime) }
 func (a byModTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func getSearchOptions(dir string) ([]NoteSearchResult, error) {
+	previewWidth := -1
+	previewHeight := -1
+	if term.IsTerminal(0) {
+		width, height, err := term.GetSize(0)
+		if err == nil {
+			previewWidth = width - 4 // 2 char border on each side
+			// 6 = 2 char search/notes title, 1 char space, 2 char top/bottom border, 1 char bottom space
+			previewHeight = height - resultsHeight - 6
+		}
+	}
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return []NoteSearchResult{}, err
@@ -65,17 +81,23 @@ func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 		scanner := bufio.NewScanner(file)
 		preview := ""
 		lines := 0
-		for scanner.Scan() {
-			preview = preview + scanner.Text() + "\n"
-			lines += 1
-			if lines >= 5 {
-				preview = preview + "..."
+		if previewWidth > 0 && previewHeight > 0 {
+			for scanner.Scan() {
+				line := scanner.Text()
+				if len(line) > previewWidth-3 {
+					line = strings.TrimSpace(line[:previewWidth-3]) + "..."
+				}
+				preview = preview + "| " + line + strings.Repeat(" ", previewWidth-len(line)) + " |\n"
 				lines += 1
-				break
+				if lines >= previewHeight {
+					break
+				}
 			}
-		}
-		for ; lines < 5; lines += 1 {
-			preview = preview + "\n"
+			for ; lines < previewHeight; lines += 1 {
+				preview = preview + "| " + strings.Repeat(" ", previewWidth) + " |\n"
+			}
+			preview = "+" + strings.Repeat("-", previewWidth+2) + "+\n" + preview
+			preview = preview + "+" + strings.Repeat("-", previewWidth+2) + "+"
 		}
 		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview, ModTime: f.ModTime()})
 	}
@@ -109,7 +131,7 @@ func SearchForFile(dir string) (*NoteSearchResult, error) {
 		Label:             "Note",
 		Items:             files,
 		Templates:         templates,
-		Size:              15,
+		Size:              resultsHeight,
 		Searcher:          searcher,
 		StartInSearchMode: true,
 	}
