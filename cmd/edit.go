@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/jbrunsting/note-taker-v2/editor"
@@ -45,8 +46,9 @@ func getSearchOptions(dir string) ([]searchOption, error) {
 	}
 	searchOptions := []searchOption{}
 	for _, f := range files {
-		name := f.Name()
-		path := fmt.Sprintf("%v/%v", dir, name)
+		filename := f.Name()
+		name := strings.TrimSuffix(filename, filepath.Ext(filename))
+		path := fmt.Sprintf("%v/%v", dir, filename)
 		file, err := os.Open(path)
 		if err != nil {
 			return []searchOption{}, err
@@ -58,10 +60,14 @@ func getSearchOptions(dir string) ([]searchOption, error) {
 		for scanner.Scan() {
 			preview = preview + scanner.Text() + "\n"
 			lines += 1
-			if lines > 5 {
-                preview = preview + "..." + "\n"
+			if lines >= 5 {
+				preview = preview + "..."
+				lines += 1
 				break
 			}
+		}
+		for ; lines < 5; lines += 1 {
+			preview = preview + "\n"
 		}
 		searchOptions = append(searchOptions, searchOption{Name: name, Preview: preview})
 	}
@@ -74,7 +80,7 @@ func searchAndEdit(dir string) error {
 		return err
 	}
 	templates := &promptui.SelectTemplates{
-        Label:    "Notes:",
+		Label:    "Notes:",
 		Active:   "> {{ .Name | green }}",
 		Inactive: "  {{ .Name | cyan }}",
 		Selected: "> {{ .Name | green }}",
@@ -91,7 +97,7 @@ func searchAndEdit(dir string) error {
 	}
 
 	prompt := promptui.Select{
-        Label:             "Note",
+		Label:             "Note",
 		Items:             files,
 		Templates:         templates,
 		Size:              15,
