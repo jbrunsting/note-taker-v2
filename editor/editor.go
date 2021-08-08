@@ -33,3 +33,20 @@ func Edit(dir string, title string) error {
 
 	return cmd.Run()
 }
+
+func Delete(dir string, title string) error {
+	path := GetPath(dir, title)
+	renamed := fmt.Sprintf("%v.deleted", path)
+	i := 1
+	for {
+		_, err := os.Stat(renamed)
+		if os.IsNotExist(err) {
+			break
+		} else if err != nil {
+			return err
+		}
+		renamed = fmt.Sprintf("%v.%v.deleted", path, i)
+		i = i + 1
+	}
+	return os.Rename(path, renamed)
+}
