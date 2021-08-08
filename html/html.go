@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jbrunsting/note-taker-v2/utils"
 	html2md "github.com/russross/blackfriday/v2"
 )
 
@@ -69,6 +70,27 @@ func removeTags(md string) string {
 type OrderedTag struct {
 	Tag   string
 	Count int
+}
+
+func WriteHtml(dir string) error {
+	files, err := utils.GetNotesFiles(dir)
+	if err != nil {
+		return err
+	}
+	htmlCode, err := GenerateHTML(files, dir)
+	if err != nil {
+		return err
+	}
+	htmlPath := fmt.Sprintf("%v/index.html", dir)
+	_, err = os.Stat(htmlPath)
+	if os.IsNotExist(err) {
+		file, err := os.Create(htmlPath)
+		if err != nil {
+			return err
+		}
+		file.Close()
+	}
+	return ioutil.WriteFile(htmlPath, []byte(htmlCode), 0644)
 }
 
 func GenerateHTML(files []os.FileInfo, dir string) (string, error) {

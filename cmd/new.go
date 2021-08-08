@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/jbrunsting/note-taker-v2/editor"
+	"github.com/jbrunsting/note-taker-v2/html"
 	"github.com/jbrunsting/note-taker-v2/utils"
 )
 
@@ -63,5 +64,9 @@ func createAndEdit(dir string, title string, filetype string) error {
 			Msg: "A note with that title already exists",
 		}
 	}
-	return editor.Edit(filepath)
+	err = editor.Edit(filepath)
+	if err != nil {
+		return err
+	}
+	return html.WriteHtml(dir)
 }
