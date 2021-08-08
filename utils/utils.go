@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -34,7 +36,13 @@ type NoteSearchResult struct {
 	Name    string
 	Path    string
 	Preview string
+	ModTime time.Time
 }
+
+type byModTime []NoteSearchResult
+func (a byModTime) Len() int           { return len(a) }
+func (a byModTime) Less(i, j int) bool { return a[i].ModTime.After(a[j].ModTime) }
+func (a byModTime) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 	files, err := ioutil.ReadDir(dir)
@@ -69,8 +77,9 @@ func getSearchOptions(dir string) ([]NoteSearchResult, error) {
 		for ; lines < 5; lines += 1 {
 			preview = preview + "\n"
 		}
-		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview})
+		searchOptions = append(searchOptions, NoteSearchResult{Name: name, Path: path, Preview: preview, ModTime: f.ModTime()})
 	}
+	sort.Sort(byModTime(searchOptions))
 	return searchOptions, nil
 }
 
