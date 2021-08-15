@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -55,18 +56,6 @@ func getToggles(tags []string) string {
 	return html
 }
 
-func removeTags(md string) string {
-	lines := strings.SplitN(md, "\n", 2)
-	firstLine := strings.TrimSpace(lines[0])
-	if len(firstLine) > 0 && firstLine[0] == '[' && firstLine[len(firstLine)-1] == ']' {
-		if len(lines) > 1 {
-			return lines[1]
-		}
-		return ""
-	}
-	return md
-}
-
 type OrderedTag struct {
 	Tag   string
 	Count int
@@ -101,19 +90,47 @@ func GenerateHTML(files []os.FileInfo, dir string) (string, error) {
 		path := fmt.Sprintf("%v/%v", dir, filename)
 		name := strings.TrimSuffix(filename, filepath.Ext(filename))
 
-		tagHtml := "<div class=\"tag\">"
-		classes := ""
-		oTags[noTagTag] = &OrderedTag{noTagTag, 0}
-		classes += " " + getClass(noTagTag)
-		tagHtml += "</div>"
-
 		bmd, err := ioutil.ReadFile(path)
 		if err != nil {
 			return html, err
 		}
 		md := strings.Replace(string(bmd), notesDirKey, dir, -1)
+
+		tagsRegexp := regexp.MustCompile(`@[a-zA-Z0-9]+\s`)
+		tags := tagsRegexp.FindAll([]byte(md), -1)
+		tagNames := []string{}
+		for _, tag := range tags {
+			tagName := string(tag)[1:]
+			tagNames = append(tagNames, tagName)
+			oldCount := 0
+			if oTag, ok := oTags[tagName]; ok {
+				oldCount = oTag.Count
+			}
+			oTags[tagName] = &OrderedTag{tagName, oldCount + 1}
+		}
+
+		tagHtml := "<div class=\"tag\">"
+		classes := ""
+		for _, tag := range tagNames {
+			tag = strings.ToLower(tag)
+
+			if _, ok := oTags[tag]; !ok {
+				oTags[tag] = &OrderedTag{tag, 0}
+			}
+
+			oTags[tag].Count += 1
+			classes += " " + getClass(tag)
+
+			tagHtml += fmt.Sprintf("<p>%s</p>", tag)
+		}
+		if len(tagNames) == 0 {
+			oTags[noTagTag] = &OrderedTag{noTagTag, 0}
+			classes += " " + getClass(noTagTag)
+		}
+		tagHtml += "</div>"
+
 		noteHtml := string(html2md.Run(
-			[]byte(removeTags(md)),
+			[]byte(md),
 			html2md.WithNoExtensions(),
 		))
 
