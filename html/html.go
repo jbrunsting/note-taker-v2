@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	noTagTag    = "untagged"
 	notesDirKey = "$NOTES"
 )
 
@@ -122,10 +121,6 @@ func GenerateHTML(files []os.FileInfo, dir string) (string, error) {
 			classes += " " + getClass(tag)
 
 			tagHtml += fmt.Sprintf("<p>%s</p>", tag)
-		}
-		if len(tagNames) == 0 {
-			oTags[noTagTag] = &OrderedTag{noTagTag, 0}
-			classes += " " + getClass(noTagTag)
 		}
 		tagHtml += "</div>"
 
