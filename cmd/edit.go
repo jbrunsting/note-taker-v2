@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/jbrunsting/note-taker-v2/editor"
 	"github.com/jbrunsting/note-taker-v2/html"
 	"github.com/jbrunsting/note-taker-v2/utils"
@@ -20,10 +22,20 @@ var editCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		writing := make(chan bool, 1)
+		go func() {
+			for {
+				time.Sleep(5 * time.Second)
+				writing <- true
+				html.WriteHtml(dir)
+				<-writing
+			}
+		}()
 		err = editor.Edit(result.Path)
 		if err != nil {
 			return err
 		}
+		writing <- true
 		return html.WriteHtml(dir)
 	},
 }
